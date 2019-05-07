@@ -1,0 +1,18 @@
+{
+    "name": "Tenant Service",
+    "author": "FICODES",
+    "version": "0.1",
+    "module": "tenant_service.TenantService",
+    "media_types": ["NGSI", "NGSI-LD"],
+    "formats": ["URL"],
+    "overrides": [],
+    "pull_accounting": true,
+    "form": {
+        "tenant_id": {
+            "type": "text",
+            "label": "Tenant ID",
+            "placeholder": "FICODES",
+            "mandatory": true
+        }
+    }
+}
