@@ -19,10 +19,16 @@
 
 from __future__ import unicode_literals
 
-from wstore.asset_manager.resource_plugins.plugin import Plugin
+import requests
+from urlparse import urljoin
 
+from wstore.asset_manager.resource_plugins.plugin import Plugin
+from wstore.asset_manager.resource_plugins.plugin_error import PluginError
+
+from token_service import get_token
 from settings import TENANT_MANAGER, ACCESS_ROLE, UNITS
 
+TENANT_URL = '/tenant-manager/tenant/{}'
 
 class TenantService(Plugin):
 
@@ -30,8 +36,36 @@ class TenantService(Plugin):
         super(TenantService, self).__init__(plugin_model)
         self._units = UNITS
 
+    def get_tenant(self, tenant_id):
+        # Get tenant info
+        url = urljoin(TENANT_MANAGER, TENANT_URL.format(tenant_id))
+        resp = requests.get(url, headers={
+            'Authorization': 'Bearer ' + get_token()
+        })
+
+        if resp.status_code == 404:
+            raise PluginError('The specified tenant does not exist')
+
+        if resp.status_code == 401 or resp.status_code == 403:
+            raise PluginError('You are not authorized to publish an offering for the specified tenant')
+
+        if resp.status_code != 200:
+            raise PluginError('An error happened accessing to the tenant')
+
+        return resp.json()
+
     def on_post_product_spec_validation(self, provider, asset):
-        pass
+        tenant_info = self.get_tenant(asset.meta_info['tenant_id'])
+
+        # Check that the user making the request is authorized to create an offering for the tenant
+        if provider.private:
+            # If the user making the request is a user, he must be the owner
+            if tenant_info['owner_id'] != provider.name
+                raise PluginError('You are not authorized to publish an offering for the specified tenant')
+        else:
+            # if the user making the request is an organization, it must be the tenant organization
+            if tenant_info['owner_organization'] != provider.name:
+                raise PluginError('You are not authorized to publish an offering for the specified tenant')
 
     def on_post_product_offering_validation(self, asset, product_offering):
         # Validate that the pay-per-use model (if any) is supported by the backend
@@ -48,10 +82,55 @@ class TenantService(Plugin):
                                           price_model['unit'] + '. Supported units are: ' + ','.join(supported_units))
 
     def on_product_acquisition(self, asset, contract, order):
-        pass
+        # Check if the acquisition is being made by an organization
+        if not order.owner_organization.private:
+            raise PluginError('A tenant cannot buy access to another tenant')
+
+        # Add the customer to the tenant
+        tenant_id = asset.meta_info['tenant_id']
+        tenant_info = self.get_tenant(tenant_id)
+
+        found = len([user_id for user in tenant_info['users'] if user['id'] != order.owner_organization.name) > 0
+
+        if not found:
+            patch = [
+                {'op': 'add', 'path': '/users/-', 'value': {
+                    'id': order.customer.username, 'name': order.customer.userprofile.actor_id, 'roles': [ACCESS_ROLE]}},
+            ]
+
+            resp = requests.patch(urljoin(TENANT_MANAGER, TENANT_URL.format(tenant_id)), json=patch, headers={
+                'Authorization': 'Bearer ' + get_token()
+            })
+
+            if resp.status_code != 200:
+                raise PluginError('An error happened updating tenant')
 
     def on_product_suspension(self, asset, contract, order):
-        pass
+        url = urljoin(TENANT_MANAGER, TENANT_URL.format(tenant_id))
+        tenant_id = asset.meta_info['tenant_id']
+        user_id = order.owner_organization.name
+        i = 0
+
+        while not done and i < 5:
+            tenant_info = self.get_tenant(tenant_id)
+            index = 0
+
+            patch = [
+                { 'op': 'test', 'path': '/users/{}/id'.format(index), 'value': user_id },
+                { 'op': 'remove', 'path': '/users/{}'.format(index) }
+            ]
+
+            resp = requests.patch(urljoin(TENANT_MANAGER, TENANT_URL.format(tenant_id)), json=patch, headers={
+                'Authorization': 'Bearer ' + get_token()
+            })
+
+            if response.status_code == 200:
+                done = True
+
+            i += 1
+
+        if not done:
+            raise PluginError('An error happened removing user from tenant')
 
     def get_usage_specs(self):
         return self._units

@@ -19,10 +19,36 @@
 
 from __future__ import unicode_literals
 
+import os
+
 UNITS = [{
     'name': 'Api call',
     'description': 'The final price is calculated based on the number of calls made to the API'
 }]
 
-TENANT_MANAGER = ''
-ACCESS_ROLE = ''
+TENANT_MANAGER = os.environ.get('TENANT_MANAGER_URL', 'https://tampere.apinf.cloud/')
+ACCESS_ROLE = os.environ.get('BROKER_CONSUMER_ROLE', 'data-consumer')
+
+UMBRELLA_URL = os.environ.get('UMBRELLA_URL', 'https://umbrella.docker:8443')
+UMBRELLA_TOKEN = os.environ.get('UMBRELLA_TOKEN', 'cIeuoqCWk01jvQl9X0Y9Ff6zxLCh2Ppqc7PYq0I4')
+UMBRELLA_KEY = os.environ.get('UMBRELLA_KEY', 'KawIYnpqPt8VG7YbVAJzAOR2odEK3ENT66ckvx5l')
+
+IDM_URL = os.environ.get('IDM_URL', 'http://idm.docker:3000')
+IDM_USER = os.environ.get('IDM_USER', 'fdelavega@conwet.com')
+IDM_PASSWD = os.environ.get('IDM_PASSWD', '123456789')
+IDM_USER_ID = os.environ.get('IDM_USER_ID', 'admin')
+
+CLIENT_ID = os.environ.get('BAE_LP_OAUTH2_CLIENT_ID', '')
+CLIENT_SECRET = os.environ.get('BAE_LP_OAUTH2_CLIENT_SECRET', '')
+
+secrets_file = "/run/secrets/{}".format(os.environ.get("CREDENTIALS_FILE", "credentials.json"))
+if os.path.isfile(secrets_file):
+    with open(secrets_file, "r") as f:
+        data = json.load(f)
+        ACCESS_ROLE = data.get('broker', {}).get('client_id', ACCESS_ROLE)
+        IDM_USER = data.get('idm', {}).get('user', IDM_USER)
+        IDM_PASSWD = data.get('idm', {}).get('password', IDM_PASSWD)
+        IDM_USER_ID = data.get('idm', {}).get('user_id', IDM_USER_ID)
+        CLIENT_SECRET = data.get('idm', {}).get('secret', CLIENT_SECRET)
+        UMBRELLA_TOKEN = data.get('umbrella', {}).get('token', UMBRELLA_TOKEN)
+        UMBRELLA_KEY = data.get('umbrella', {}).get('key', UMBRELLA_KEY)
