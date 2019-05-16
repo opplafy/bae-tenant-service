@@ -40,10 +40,10 @@ def get_token():
         'password': IDM_PASSWD
     }
 
-    credentials = base64.encode('{}:{}'.format(CLIENT_ID, CLIENT_SECRET))
+    credentials = base64.b64encode('{}:{}'.format(CLIENT_ID, CLIENT_SECRET))
     resp = requests.post(url, data=params, headers={
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Bearer ' + credentials
+        'Authorization': 'Basic ' + credentials
     })
 
     if resp.status_code != 200:

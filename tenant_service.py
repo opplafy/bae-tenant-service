@@ -30,6 +30,7 @@ from settings import TENANT_MANAGER, ACCESS_ROLE, UNITS
 from umbrella_client import get_accounting
 
 TENANT_URL = '/tenant-manager/tenant/{}'
+USER_URL = '/tenant-manager/user/'
 
 class TenantService(Plugin):
 
@@ -55,17 +56,36 @@ class TenantService(Plugin):
 
         return resp.json()
 
+    def _get_username(self, user_id):
+        url = urljoin(TENANT_MANAGER, USER_URL)
+        resp = requests.get(url, headers={
+            'Authorization': 'Bearer ' + get_token()
+        })
+
+        if resp.status_code != 200:
+            raise PluginError('Error reading user information from tenant manager')
+
+        username = ''
+        for user in resp.json()['users']:
+            if user['id'] == user_id:
+                username = user['username']
+                break
+        else:
+            raise PluginError('User not found in tenant manager')
+
+        return username
+
     def on_post_product_spec_validation(self, provider, asset):
         tenant_info = self.get_tenant(asset.meta_info['tenant_id'])
 
         # Check that the user making the request is authorized to create an offering for the tenant
         if provider.private:
             # If the user making the request is a user, he must be the owner
-            if tenant_info['owner_id'] != provider.name
+            if tenant_info['owner_id'] != provider.name:
                 raise PluginError('You are not authorized to publish an offering for the specified tenant')
         else:
             # if the user making the request is an organization, it must be the tenant organization
-            if tenant_info['owner_organization'] != provider.name:
+            if tenant_info['tenant_organization'] != provider.name:
                 raise PluginError('You are not authorized to publish an offering for the specified tenant')
 
     def on_post_product_offering_validation(self, asset, product_offering):
@@ -96,7 +116,7 @@ class TenantService(Plugin):
         if not found:
             patch = [
                 {'op': 'add', 'path': '/users/-', 'value': {
-                    'id': order.customer.username, 'name': order.customer.userprofile.actor_id, 'roles': [ACCESS_ROLE]}},
+                    'id': order.customer.username, 'name': self._get_username(order.customer.username), 'roles': [ACCESS_ROLE]}},
             ]
 
             resp = requests.patch(urljoin(TENANT_MANAGER, TENANT_URL.format(tenant_id)), json=patch, headers={
