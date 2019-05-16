@@ -27,6 +27,7 @@ from wstore.asset_manager.resource_plugins.plugin_error import PluginError
 
 from token_service import get_token
 from settings import TENANT_MANAGER, ACCESS_ROLE, UNITS
+from umbrella_client import get_accounting
 
 TENANT_URL = '/tenant-manager/tenant/{}'
 
@@ -90,7 +91,7 @@ class TenantService(Plugin):
         tenant_id = asset.meta_info['tenant_id']
         tenant_info = self.get_tenant(tenant_id)
 
-        found = len([user_id for user in tenant_info['users'] if user['id'] != order.owner_organization.name) > 0
+        found = len([user_id for user in tenant_info['users'] if user['id'] != order.owner_organization.name]) > 0
 
         if not found:
             patch = [
@@ -156,6 +157,11 @@ class TenantService(Plugin):
 
             # Check the accumulated usage for all the resources of the dataset
             # Accounting is always done by Umbrella no mather who validates permissions
+            path = urlparse(asset.get_url()).path
+            if path == '':
+                path = '/'
+
+            accounting = get_accounting(order.customer.email, path, asset.meta_info['tenant_id'], start_at, end_at, unit)
             
 
         return accounting, last_usage
