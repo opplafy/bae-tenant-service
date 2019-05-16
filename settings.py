@@ -45,7 +45,6 @@ secrets_file = "/run/secrets/{}".format(os.environ.get("CREDENTIALS_FILE", "cred
 if os.path.isfile(secrets_file):
     with open(secrets_file, "r") as f:
         data = json.load(f)
-        ACCESS_ROLE = data.get('broker', {}).get('client_id', ACCESS_ROLE)
         IDM_USER = data.get('idm', {}).get('user', IDM_USER)
         IDM_PASSWD = data.get('idm', {}).get('password', IDM_PASSWD)
         IDM_USER_ID = data.get('idm', {}).get('user_id', IDM_USER_ID)
