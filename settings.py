@@ -48,6 +48,7 @@ if os.path.isfile(secrets_file):
         IDM_USER = data.get('idm', {}).get('user', IDM_USER)
         IDM_PASSWD = data.get('idm', {}).get('password', IDM_PASSWD)
         IDM_USER_ID = data.get('idm', {}).get('user_id', IDM_USER_ID)
-        CLIENT_SECRET = data.get('idm', {}).get('secret', CLIENT_SECRET)
+        CLIENT_ID = data.get('bae', {}).get('client_id', CLIENT_ID)
+        CLIENT_SECRET = data.get('bae', {}).get('secret', CLIENT_SECRET)
         UMBRELLA_TOKEN = data.get('umbrella', {}).get('token', UMBRELLA_TOKEN)
         UMBRELLA_KEY = data.get('umbrella', {}).get('key', UMBRELLA_KEY)
