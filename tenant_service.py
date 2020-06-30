@@ -111,7 +111,7 @@ class TenantService(Plugin):
         tenant_id = asset.meta_info['tenant_id']
         tenant_info = self.get_tenant(tenant_id)
 
-        found = len([user_id for user in tenant_info['users'] if user['id'] != order.owner_organization.name]) > 0
+        found = len([user for user in tenant_info['users'] if user['id'] == order.owner_organization.name]) > 0
 
         if not found:
             patch = [
